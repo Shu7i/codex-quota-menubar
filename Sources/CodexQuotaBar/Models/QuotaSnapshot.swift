@@ -12,12 +12,29 @@ struct QuotaSnapshot {
 
     static let empty = QuotaSnapshot()
 
+    func fiveHourCountdown(at now: Date) -> String {
+        Self.countdown(until: fiveHourResetAt, now: now, allowsDays: false)
+    }
+
+    func weeklyCountdown(at now: Date) -> String {
+        Self.countdown(until: weeklyResetAt, now: now, allowsDays: true)
+    }
+
+    static func countdown(until deadline: Date?, now: Date, allowsDays: Bool) -> String {
+        guard let deadline else { return "--" }
+        let seconds = max(0, deadline.timeIntervalSince(now))
+        if allowsDays && seconds >= 86400 { return "\(Int(seconds / 86400))Day" }
+        if seconds >= 3600 { return "\(Int(seconds / 3600))Hour" }
+        if seconds > 0 { return "\(max(1, Int(seconds / 60)))min" }
+        return "0min"
+    }
+
     var menuTitle: String {
         "\(menuFiveHourTitle) | \(menuWeeklyTitle)"
     }
 
     var menuFiveHourTitle: String {
-        fiveHourUsedPercent.map { "5h \(100 - $0)%" } ?? "5h --"
+        fiveHourUsedPercent.map { "时 \(100 - $0)%" } ?? "时 --"
     }
 
     var menuFiveHourValue: String {
@@ -29,7 +46,7 @@ struct QuotaSnapshot {
     }
 
     var menuWeeklyTitle: String {
-        weeklyUsedPercent.map { "W  \(100 - $0)%" } ?? "W  --"
+        weeklyUsedPercent.map { "周 \(100 - $0)%" } ?? "周 --"
     }
 
     var menuWeeklyValue: String {
@@ -61,7 +78,7 @@ struct QuotaSnapshot {
     }
 
     var fiveHourResetLabel: String {
-        "5H 刷新"
+        "时 刷新"
     }
 
     var fiveHourResetValue: String {
@@ -73,7 +90,7 @@ struct QuotaSnapshot {
     }
 
     var weeklyResetLabel: String {
-        "W  刷新"
+        "周 刷新"
     }
 
     var weeklyResetValue: String {

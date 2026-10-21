@@ -166,6 +166,7 @@ private func codexExecutableURL() throws -> URL {
 
     let candidates = [
         "/Applications/Codex.app/Contents/Resources/codex",
+        "/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex",
         "/opt/homebrew/bin/codex",
         "/usr/local/bin/codex"
     ]
