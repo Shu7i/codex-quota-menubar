@@ -1,5 +1,6 @@
 import AppKit
 import Combine
+import ServiceManagement
 
 @main
 enum CodexQuotaBarMain {
@@ -90,7 +91,7 @@ private final class StatusItemController: NSObject, NSMenuDelegate {
             topIsLow: shouldHighlightLowQuota(store.snapshot.fiveHourRemainingPercent, threshold: store.settings.fiveHourThreshold),
             bottomIsLow: shouldHighlightLowQuota(store.snapshot.weeklyRemainingPercent, threshold: store.settings.weeklyThreshold),
             usesDarkMenuBar: detectAppearance ? (manuallyDetectedUsesDarkMenuBar ?? statusItem.button?.usesDarkMenuBarAppearance ?? false) : (lastRenderState?.usesDarkMenuBar ?? false),
-            toolTip: store.snapshot.menuTitle,
+            toolTip: store.snapshot.resetToolTip + (store.snapshot.errorMessage == nil ? "" : "\n额度未更新：显示上次成功数据"),
             settings: store.settings
         )
 
@@ -128,11 +129,13 @@ private final class StatusItemController: NSObject, NSMenuDelegate {
         menu.addItem(alignedInfoItem(label: "时 剩余额度", value: store.snapshot.menuFiveHourValue))
         menu.addItem(alignedInfoItem(label: "周 剩余额度", value: store.snapshot.menuWeeklyValue))
 
-        if let errorMessage = store.snapshot.errorMessage {
+        if store.snapshot.errorMessage != nil {
             menu.addItem(.separator())
-            let error = NSMenuItem(title: "错误 \(errorMessage)", action: nil, keyEquivalent: "")
+            let error = NSMenuItem(title: "额度未更新，请稍后刷新", action: nil, keyEquivalent: "")
+            error.toolTip = "请检查网络连接和 Codex 登录状态。已有数字为上次成功查询的结果。"
             error.isEnabled = false
             menu.addItem(error)
+            menu.addItem(alignedInfoItem(label: "上次成功", value: store.snapshot.updatedValue))
         }
 
         if store.isRefreshing {
@@ -187,6 +190,17 @@ private final class StatusItemController: NSObject, NSMenuDelegate {
         let refresh = NSMenuItem(title: "刷新", action: #selector(refresh), keyEquivalent: "r")
         refresh.target = self
         menu.addItem(refresh)
+
+        let loginItem = NSMenuItem(title: "开机自启", action: #selector(toggleLoginItem), keyEquivalent: "")
+        loginItem.target = self
+        let loginStatus = SMAppService.mainApp.status
+        loginItem.state = loginStatus == .enabled ? .on : .off
+        if loginStatus == .requiresApproval {
+            loginItem.title = "开机自启（等待系统批准…）"
+            loginItem.state = .mixed
+        }
+        menu.addItem(loginItem)
+        menu.addItem(.separator())
 
         let quit = NSMenuItem(title: "退出", action: #selector(quit), keyEquivalent: "q")
         quit.target = self
@@ -332,6 +346,30 @@ private final class StatusItemController: NSObject, NSMenuDelegate {
             await MainActor.run {
                 self.updateStatusView(force: true)
             }
+        }
+    }
+
+    @objc private func toggleLoginItem() {
+        do {
+            let service = SMAppService.mainApp
+            switch service.status {
+            case .enabled:
+                try service.unregister()
+            case .requiresApproval:
+                SMAppService.openSystemSettingsLoginItems()
+            default:
+                try service.register()
+                if service.status == .requiresApproval {
+                    SMAppService.openSystemSettingsLoginItems()
+                }
+            }
+        } catch {
+            let alert = NSAlert()
+            alert.messageText = "无法更改开机自启"
+            alert.informativeText = "请确认应用位于“应用程序”目录，并在“系统设置 → 通用 → 登录项”检查允许状态。\n\(error.localizedDescription)"
+            alert.addButton(withTitle: "好")
+            NSApp.activate(ignoringOtherApps: true)
+            alert.runModal()
         }
     }
 

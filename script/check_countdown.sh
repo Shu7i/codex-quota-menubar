@@ -11,11 +11,13 @@ import Foundation
   func value(_ seconds: Double, _ days: Bool = false) -> String {
    QuotaSnapshot.countdown(until: now.addingTimeInterval(seconds), now: now, allowsDays: days)
   }
-  precondition(value(4 * 3600) == "4Hour")
+  precondition(value(4 * 3600) == "4h0m")
+  precondition(value(2 * 3600 + 55 * 60) == "2h55m")
+  precondition(value(2 * 3600 + 55 * 60 + 59) == "2h55m")
   precondition(value(35 * 60) == "35min")
   precondition(value(3 * 86400, true) == "3Day")
-  precondition(value(86399, true) == "23Hour")
-  precondition(value(3600, true) == "1Hour")
+  precondition(value(86399, true) == "23h59m")
+  precondition(value(3600, true) == "1h0m")
   precondition(value(3599) == "59min")
   precondition(value(59) == "1min")
   precondition(value(0) == "0min" && value(-10) == "0min")

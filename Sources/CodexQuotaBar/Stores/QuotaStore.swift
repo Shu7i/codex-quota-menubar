@@ -65,10 +65,8 @@ final class QuotaStore: ObservableObject {
         do {
             snapshot = try await client.readQuota()
         } catch {
-            snapshot = QuotaSnapshot(
-                updatedAt: Date(),
-                errorMessage: error.localizedDescription
-            )
+            // Retain the last successful values and their original timestamp.
+            snapshot.errorMessage = "额度查询失败，请检查网络或 Codex 登录状态"
         }
     }
 

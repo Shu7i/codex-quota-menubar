@@ -24,9 +24,16 @@ struct QuotaSnapshot {
         guard let deadline else { return "--" }
         let seconds = max(0, deadline.timeIntervalSince(now))
         if allowsDays && seconds >= 86400 { return "\(Int(seconds / 86400))Day" }
-        if seconds >= 3600 { return "\(Int(seconds / 3600))Hour" }
+        if seconds >= 3600 {
+            let minutes = Int(seconds / 60)
+            return "\(minutes / 60)h\(minutes % 60)m"
+        }
         if seconds > 0 { return "\(max(1, Int(seconds / 60)))min" }
         return "0min"
+    }
+
+    var resetToolTip: String {
+        "时 截止：\(fiveHourResetValue)\n周 截止：\(weeklyResetValue)"
     }
 
     var menuTitle: String {
